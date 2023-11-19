@@ -11,6 +11,8 @@ Github repository: [Github](https://github.com/AlanGalaxy/506A5)
 
 ## Problem 1
 
+Load the package and data.
+
 ```{r}
 library(ggplot2)
 library(tidyverse)
@@ -23,45 +25,63 @@ summary(nnmaps)
 
 \(a\)
 
+Calculate the average temperature in Celsius. Use `ggplot` to plot the data.
+
 ```{r}
+#| code-fold: true
 month_mean <- nnmaps %>% 
   group_by(month, season) %>% 
+  # get the average temp
   summarise(mean_temp = mean(temp)) %>% 
+  # change to celsius
   mutate(mean_temp = (mean_temp - 32) / 1.8) %>% 
   ungroup()
 
 ggplot(data = month_mean, 
        mapping = aes(x = month, y = mean_temp,color = season, group = season)) + 
+  # plot the points and lines
   geom_point() + 
   geom_line() + 
-  scale_color_manual(values = c("Winter" = "blue", "Spring" = "green", 
-                                "Summer" = "orange", "Autumn" = "black")) + 
+  # set the legend and order
+  scale_color_manual(name = "Seasons", values = c("Winter" = "blue", 
+                                                  "Spring" = "green", 
+                                                  "Summer" = "orange", 
+                                                  "Autumn" = "black"), 
+                     limits = c("Winter", "Spring", "Summer", "Autumn")) + 
+  # set the x-axis
   scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", 
                             "Aug", "Sep", "Oct", "Nov", "Dec")) + 
+  # set the labels
   labs(x = "Month", y = "Average Monthly Temperature (Celsius)", color = "Season", 
        title = "Average Monthly Temperature by Season")
 ```
 
 \(b\)
 
+Calculate the data and pivot into long data. Use `ggplot` to plot the data.
+
 ```{r}
+#| code-fold: true
 library(tidyr)
 
 month_mean2 <- nnmaps %>% 
   group_by(month, season) %>% 
+  # calculate the average data
   summarise(mean_temp = mean(temp), 
             mean_o3 = mean(o3), 
             mean_pm10 = mean(pm10, na.rm = TRUE), 
             mean_dewpoint = mean(dewpoint)) %>% 
+  # change to celsius
   mutate(mean_temp = (mean_temp - 32) / 1.8) %>% 
   ungroup()%>%
+  # pivot the data to be longer
   pivot_longer(cols = starts_with("mean_"), names_to = "variable", 
                values_to = "value")
 
 ggplot(month_mean2, aes(x = month, y = value, color = variable, group = variable)) +
   geom_point() +
   geom_line() +
-  
+  # set the legend
   scale_color_manual(name = "Average Variables", values = c("mean_temp" = "blue", 
                                 "mean_o3" = "green", 
                                 "mean_pm10" = "orange", 
@@ -69,11 +89,13 @@ ggplot(month_mean2, aes(x = month, y = value, color = variable, group = variable
                      labels = c("mean_temp" = "Temperature", 
                                 "mean_o3" = "O3",
                                 "mean_pm10" = "PM10",
-                                "mean_dewpoint" = "Dewpoint")) +
-  
+                                "mean_dewpoint" = "Dewpoint"), 
+                     limits = c("mean_pm10", "mean_dewpoint", 
+                                "mean_o3", "mean_temp")) +
+  # set the x-axis
   scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", 
                               "Aug", "Sep", "Oct", "Nov", "Dec")) +
-
+  # set the labels
   labs(x = "Month", y = "Average Monthly Value", color = "Variable",
        title = "Average Monthly Temperature, O3, PM10, and Dewpoint")
 ```
@@ -82,21 +104,32 @@ ggplot(month_mean2, aes(x = month, y = value, color = variable, group = variable
 
 \(a\)
 
+Set the class "poly".
+
 ```{r}
 setClass("poly", 
          slots = c(coef = "numeric", 
                    degree = "numeric"))
+```
 
-# constructor
+Define the constructor. The first vector represents the coefficients, the second represents the degree.
+
+```{r}
 makePoly <- function(x, y) {
+  # first use the validator defined below to check if the two vector make sense
   new("poly", coef = x, degree = y)
+  # order the two vector by the degree of x
   index <- order(y, decreasing = TRUE)
   x <- x[index]
   y <- y[index]
+  # return the ordered poly
   return(new("poly", coef = x, degree = y))
 }
+```
 
-# validator
+Define the validator to check whether the two vectors have the same length.
+
+```{r}
 setValidity("poly", function(object) {
   # check the same length
   if (length(object@coef) != length(object@degree)) {
@@ -104,14 +137,20 @@ setValidity("poly", function(object) {
   }
   return(TRUE)
 })
+```
 
-# show method
+Define the `show` method.
+
+```{r}
+#| code-fold: true
 setMethod("show", "poly", function(object) {
   coef <- object@coef
   degree <- object@degree
   equation <- ""
   
   # Print the first term
+  # In order to make sure the equation is well presented, this can be separated into 
+  # different cases.
   if (degree[1] == 0) {
     if (coef[1] > 0) {
       equation <- as.character(coef[1])
@@ -175,22 +214,13 @@ setMethod("show", "poly", function(object) {
   cat(equation, "\n")
   return(invisible(object))
 })
+```
 
-# addition subtraction
-setMethod("+", signature("poly", 
-                         "poly"), 
-          function(e1, e2) {
-            all_degrees <- unique(c(e1@degree, e2@degree))
-            result_coefficients <- sapply(all_degrees, function(power) {
-              sum(e1@coef[e1@degree == power], na.rm = TRUE) + 
-                sum(e2@coef[e2@degree == power], na.rm = TRUE)
-              })
-            
-            makePoly(result_coefficients, all_degrees)
-})
+Define the addition & subtraction.
 
-setMethod("+", signature("poly", 
-                         "poly"), 
+```{r}
+#| code-fold: true
+setMethod("+", signature("poly", "poly"), 
           function(e1, e2) {
             all_degrees <- unique(c(e1@degree, e2@degree))
             result_coefficients <- sapply(all_degrees, function(power) {
@@ -225,6 +255,26 @@ p2
 
 p1 + p2
 p1 - p2
+```
+
+Additional examples:
+
+$\pm1$ in coefficient is well handled.
+
+```{r}
+makePoly(c(1,-1), c(2,1))
+```
+
+Negative degree is well handled.
+
+```{r}
+makePoly(c(-1,2,3), c(0,-1,-2))
+```
+
+Unordered input in degree is well handled.
+
+```{r}
+makePoly(c(1,2,3), c(1,0,2))
 ```
 
 ## Problem 3
