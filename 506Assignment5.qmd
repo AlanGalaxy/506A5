@@ -100,6 +100,8 @@ ggplot(month_mean2, aes(x = month, y = value, color = variable, group = variable
        title = "Average Monthly Temperature, O3, PM10, and Dewpoint")
 ```
 
+From the picture, "PM10" is the variable has the least seasonal trend.
+
 ## Problem 2
 
 \(a\)
@@ -222,12 +224,14 @@ Define the addition & subtraction.
 #| code-fold: true
 setMethod("+", signature("poly", "poly"), 
           function(e1, e2) {
+            # get all the degrees in two poly
             all_degrees <- unique(c(e1@degree, e2@degree))
+            # add the corresponding coefficients
             result_coefficients <- sapply(all_degrees, function(power) {
               sum(e1@coef[e1@degree == power], na.rm = TRUE) + 
                 sum(e2@coef[e2@degree == power], na.rm = TRUE)
             })
-
+            # return the new poly
             makePoly(result_coefficients, all_degrees)
           })
 
@@ -279,14 +283,76 @@ makePoly(c(1,2,3), c(1,0,2))
 
 ## Problem 3
 
-\(a\)
+Load the package and data.
 
 ```{r}
+library(data.table)
+library(nycflights13)
 
+data(flights)
+data(airports)
+
+flights <- as.data.table(flights)
+airports <- as.data.table(airports)
+```
+
+\(a\)
+
+Generate the full `data.table` for departure delay.
+
+```{r}
+departure_delay <- flights |> 
+  # calcualte the mean and median statistics
+  _[, .(mean_dep_delay = mean(dep_delay, na.rm = TRUE), 
+        median_dep_delay = median(dep_delay, na.rm = TRUE)), 
+    by = .(origin)] |> 
+  # merge two data.table
+  merge(x = _, airports, by.x = "origin", by.y = "faa", all.x = TRUE) |> 
+  # select the final table
+  _[, .(airport_name = name, mean_dep_delay, median_dep_delay)] |> 
+  # make it in right order
+  _[order(-mean_dep_delay)]
+
+print(departure_delay, n = nrow(departure_delay))
+```
+
+Generate the full `data.table` for arrival delay.
+
+```{r}
+arrival_delay <- flights |> 
+  # calcualte the mean and median statistics
+  _[, .(mean_arr_delay = mean(arr_delay, na.rm = TRUE), 
+        median_arr_delay = median(arr_delay, na.rm = TRUE),
+        count = .N), 
+    by = .(dest)] |> 
+  # merge two data.table
+  merge(x = _, airports, by.x = "dest", by.y = "faa", all.x = TRUE) |> 
+  # select the final table
+  _[count >= 10, .(airport_name = name, mean_arr_delay, median_arr_delay)] |> 
+  # make it in right order
+  _[order(-mean_arr_delay)]
+
+print(arrival_delay, n = nrow(arrival_delay))
 ```
 
 \(b\)
 
-```{r}
+Generate the full `data.table`.
 
+```{r}
+data(planes)
+planes <- as.data.table(planes)
+
+fast_model_num <- flights |> 
+  # merge two data.table
+  merge(x = _, planes, by = "tailnum", all.x = TRUE) |> 
+  # calculate the average speed in MPH for each model
+  _[, .(average_speed = mean(distance / air_time, na.rm = TRUE) * 60, 
+        num_flight = .N), by = model] |> 
+  # make it in right order
+  _[order(-average_speed)] |> 
+  # select the first row
+  _[1, .(model, average_speed, num_flight)]
+
+print(fast_model_num, n = nrow(fast_model_num))
 ```
