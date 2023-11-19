@@ -7,10 +7,236 @@ format:
 editor: visual
 ---
 
-Github repository:
+Github repository: [Github](https://github.com/AlanGalaxy/506A5)
 
 ## Problem 1
 
+```{r}
+library(ggplot2)
+library(tidyverse)
+
+nnmaps <- read.csv("D:/Code/R/506A5/chicago-nmmaps.csv")
+nnmaps$date <- as.Date(nnmaps$date)
+# plot(nnmaps$o3 ~ nnmaps$date)
+summary(nnmaps)
+```
+
+\(a\)
+
+```{r}
+month_mean <- nnmaps %>% 
+  group_by(month, season) %>% 
+  summarise(mean_temp = mean(temp)) %>% 
+  mutate(mean_temp = (mean_temp - 32) / 1.8) %>% 
+  ungroup()
+
+ggplot(data = month_mean, 
+       mapping = aes(x = month, y = mean_temp,color = season, group = season)) + 
+  geom_point() + 
+  geom_line() + 
+  scale_color_manual(values = c("Winter" = "blue", "Spring" = "green", 
+                                "Summer" = "orange", "Autumn" = "black")) + 
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", 
+                            "Aug", "Sep", "Oct", "Nov", "Dec")) + 
+  labs(x = "Month", y = "Average Monthly Temperature (Celsius)", color = "Season", 
+       title = "Average Monthly Temperature by Season")
+```
+
+\(b\)
+
+```{r}
+library(tidyr)
+
+month_mean2 <- nnmaps %>% 
+  group_by(month, season) %>% 
+  summarise(mean_temp = mean(temp), 
+            mean_o3 = mean(o3), 
+            mean_pm10 = mean(pm10, na.rm = TRUE), 
+            mean_dewpoint = mean(dewpoint)) %>% 
+  mutate(mean_temp = (mean_temp - 32) / 1.8) %>% 
+  ungroup()%>%
+  pivot_longer(cols = starts_with("mean_"), names_to = "variable", 
+               values_to = "value")
+
+ggplot(month_mean2, aes(x = month, y = value, color = variable, group = variable)) +
+  geom_point() +
+  geom_line() +
+  
+  scale_color_manual(name = "Average Variables", values = c("mean_temp" = "blue", 
+                                "mean_o3" = "green", 
+                                "mean_pm10" = "orange", 
+                                "mean_dewpoint" = "red"), 
+                     labels = c("mean_temp" = "Temperature", 
+                                "mean_o3" = "O3",
+                                "mean_pm10" = "PM10",
+                                "mean_dewpoint" = "Dewpoint")) +
+  
+  scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", 
+                              "Aug", "Sep", "Oct", "Nov", "Dec")) +
+
+  labs(x = "Month", y = "Average Monthly Value", color = "Variable",
+       title = "Average Monthly Temperature, O3, PM10, and Dewpoint")
+```
+
 ## Problem 2
 
+\(a\)
+
+```{r}
+setClass("poly", 
+         slots = c(coef = "numeric", 
+                   degree = "numeric"))
+
+# constructor
+makePoly <- function(x, y) {
+  new("poly", coef = x, degree = y)
+  index <- order(y, decreasing = TRUE)
+  x <- x[index]
+  y <- y[index]
+  return(new("poly", coef = x, degree = y))
+}
+
+# validator
+setValidity("poly", function(object) {
+  # check the same length
+  if (length(object@coef) != length(object@degree)) {
+    stop("The coefficients and degrees do not have the same length!\n")
+  }
+  return(TRUE)
+})
+
+# show method
+setMethod("show", "poly", function(object) {
+  coef <- object@coef
+  degree <- object@degree
+  equation <- ""
+  
+  # Print the first term
+  if (degree[1] == 0) {
+    if (coef[1] > 0) {
+      equation <- as.character(coef[1])
+    } else {
+      equation <- paste("- ", abs(coef[1]), sep = "")
+    }
+  } else if (degree[1] == 1) {
+    if (coef[1] == 1) {
+      equation <- "x"
+    } else if (coef[1] > 0) {
+      equation <- paste(coef[1], "x", sep = "")
+    } else if (coef[1] == -1) {
+      equation <- "- x"
+    } else {
+      equation <- paste("- ", abs(coef[1]), sep = "")
+    }
+  } else {
+    if (coef[1] == 1) {
+      equation <- paste("x^", degree[1], sep = "")
+    } else if (coef[1] > 0) {
+      equation <- paste(coef[1], "x^", degree[1], sep = "")
+    } else if (coef[1] == -1) {
+      equation <- paste("- ", "x^", degree[1], sep = "")
+    } else {
+      equation <- paste("- ", abs(coef[1]), "x^", degree[1], sep = "")
+    }
+  }
+  
+  # Print the rest terms
+  if (length(coef) > 1) {
+    for (i in 2:length(coef)) {
+      if (degree[i] == 0) {
+        if (coef[i] > 0) {
+          equation <- paste(equation, " + ", coef[i], sep = "")
+        } else {
+          equation <- paste(equation, " - ", abs(coef[i]), sep = "")
+        }
+      } else if (degree[i] == 1) {
+        if (coef[i] == 1) {
+          equation <- paste(equation, " + x", sep = "")
+        } else if (coef[i] > 0) {
+          equation <- paste(equation, " + ", coef[i], "x", sep = "")
+        } else if (coef[i] == -1) {
+          equation <- paste(equation, " - x", sep = "")
+        } else {
+          equation <- paste(equation, " - ", abs(coef[i]), "x", sep = "")
+        }
+      } else {
+        if (coef[i] == 1) {
+          equation <- paste(equation, " + x^", degree[i], sep = "")
+        } else if (coef[i] > 0) {
+          equation <- paste(equation, " + ", coef[i], "x^", degree[i], sep = "")
+        } else if (coef[i] == -1){
+          equation <- paste(equation, " - x^", degree[i], sep = "")
+        } else {
+          equation <- paste(equation, " - ", abs(coef[i]), "x^", degree[i], sep = "")
+        }
+      }
+    }
+  }
+  cat(equation, "\n")
+  return(invisible(object))
+})
+
+# addition subtraction
+setMethod("+", signature("poly", 
+                         "poly"), 
+          function(e1, e2) {
+            all_degrees <- unique(c(e1@degree, e2@degree))
+            result_coefficients <- sapply(all_degrees, function(power) {
+              sum(e1@coef[e1@degree == power], na.rm = TRUE) + 
+                sum(e2@coef[e2@degree == power], na.rm = TRUE)
+              })
+            
+            makePoly(result_coefficients, all_degrees)
+})
+
+setMethod("+", signature("poly", 
+                         "poly"), 
+          function(e1, e2) {
+            all_degrees <- unique(c(e1@degree, e2@degree))
+            result_coefficients <- sapply(all_degrees, function(power) {
+              sum(e1@coef[e1@degree == power], na.rm = TRUE) + 
+                sum(e2@coef[e2@degree == power], na.rm = TRUE)
+            })
+
+            makePoly(result_coefficients, all_degrees)
+          })
+
+setMethod("-", signature("poly", 
+                         "poly"), 
+          function(e1, e2) {
+            all_degrees <- unique(c(e1@degree, e2@degree))
+            result_coefficients <- sapply(all_degrees, function(power) {
+              sum(e1@coef[e1@degree == power], na.rm = TRUE) - 
+                sum(e2@coef[e2@degree == power], na.rm = TRUE)
+            })
+            
+            makePoly(result_coefficients, all_degrees)
+          })
+```
+
+\(b\)
+
+```{r}
+p1 <- makePoly(c(3,2), c(2,0))
+p2 <- makePoly(c(7,-2,-1,17), c(3,2,1,0))
+
+p1
+p2
+
+p1 + p2
+p1 - p2
+```
+
 ## Problem 3
+
+\(a\)
+
+```{r}
+
+```
+
+\(b\)
+
+```{r}
+
+```
