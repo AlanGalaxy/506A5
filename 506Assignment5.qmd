@@ -78,27 +78,47 @@ month_mean2 <- nnmaps %>%
   pivot_longer(cols = starts_with("mean_"), names_to = "variable", 
                values_to = "value")
 
-ggplot(month_mean2, aes(x = month, y = value, color = variable, group = variable)) +
+ggplot(month_mean2, aes(x = month, y = value, color = season, group = interaction(season, variable), linetype = variable, shape = variable)) +
   geom_point() +
   geom_line() +
-  # set the legend
-  scale_color_manual(name = "Average Variables", values = c("mean_temp" = "blue", 
-                                "mean_o3" = "green", 
-                                "mean_pm10" = "orange", 
-                                "mean_dewpoint" = "red"), 
+  # set the legend and seasons' color
+  scale_color_manual(name = "Seasons", values = c("Winter" = "blue", 
+                                                  "Spring" = "green", 
+                                                  "Summer" = "orange", 
+                                                  "Autumn" = "red"), 
+                     limits = c("Winter", "Spring", 
+                                "Summer", "Autumn")) + 
+  # set the legend and point type
+  scale_shape_manual(name = "Variables", values = c("mean_temp" = 8, 
+                                                    "mean_o3" = 17, 
+                                                    "mean_pm10" = 15, 
+                                                    "mean_dewpoint" = 19), 
                      labels = c("mean_temp" = "Temperature", 
                                 "mean_o3" = "O3",
                                 "mean_pm10" = "PM10",
                                 "mean_dewpoint" = "Dewpoint"), 
-                     limits = c("mean_pm10", "mean_dewpoint", 
-                                "mean_o3", "mean_temp")) +
+                     limits = c("mean_dewpoint", "mean_pm10", 
+                                "mean_o3", "mean_temp")) + 
+  # set the legend and line type
+  scale_linetype_manual(name = "Variables", values = c("mean_temp" = "dotted", 
+                                                       "mean_o3" = "dashed", 
+                                                       "mean_pm10" = "solid", 
+                                                       "mean_dewpoint" = "dotdash"),
+                        labels = c("mean_temp" = "Temperature", 
+                                   "mean_o3" = "O3",
+                                   "mean_pm10" = "PM10",
+                                   "mean_dewpoint" = "Dewpoint"), 
+                        limits = c("mean_dewpoint", "mean_pm10", 
+                                   "mean_o3", "mean_temp")) + 
   # set the x-axis
   scale_x_discrete(limits = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", 
-                              "Aug", "Sep", "Oct", "Nov", "Dec")) +
+                            "Aug", "Sep", "Oct", "Nov", "Dec")) +
   # set the labels
   labs(x = "Month", y = "Average Monthly Value", color = "Variable",
        title = "Average Monthly Temperature, O3, PM10, and Dewpoint")
 ```
+
+The data in different seasons are in different colors, and different variables are in different point-type and line-type.
 
 From the picture, "PM10" is the variable has the least seasonal trend.
 
